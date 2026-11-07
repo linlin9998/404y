@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#070b14">
+<title>访问环境校验</title>
+<style>
+  :root{
+    --bg:#070b14;
+    --card:rgba(17,24,39,.72);
+    --line:rgba(56,189,248,.16);
+    --cyan:#38bdf8;
+    --cyan2:#22d3ee;
+    --ok:#34d399;
+    --text:#e2e8f0;
+    --muted:#8b9bb4;
+    --dim:#67788f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    min-height:100dvh;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 20px;
+    background:
+      radial-gradient(1200px 620px at 50% -12%,rgba(34,211,238,.10),transparent 62%),
+      radial-gradient(920px 520px at 50% 112%,rgba(56,189,248,.08),transparent 62%),
+      var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(56,189,248,.045) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(56,189,248,.045) 1px,transparent 1px);
+    background-size:44px 44px;
+    -webkit-mask-image:radial-gradient(circle at 50% 45%,#000 28%,transparent 76%);
+    mask-image:radial-gradient(circle at 50% 45%,#000 28%,transparent 76%);
+  }
+  .card{
+    position:relative;z-index:1;
+    width:min(520px,100%);
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:clamp(26px,5.4vw,40px);
+    -webkit-backdrop-filter:blur(14px);
+    backdrop-filter:blur(14px);
+    box-shadow:0 26px 70px -22px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.02) inset;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;top:0;left:12%;right:12%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(56,189,248,.62),transparent);
+  }
+  .head{text-align:center;margin-bottom:26px}
+  h1{font-size:clamp(20px,4.6vw,24px);font-weight:650;letter-spacing:.5px}
+  .sub{margin-top:9px;font-size:13px;color:var(--muted);line-height:1.65}
+
+  /* ---------- 扫描区 ---------- */
+  #scan{padding-top:2px}
+  .radar{position:relative;width:104px;height:104px;margin:0 auto 26px}
+  .radar .sweep{
+    position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(from 0deg,rgba(56,189,248,.42),rgba(56,189,248,0) 55%);
+    animation:sweep 1.8s linear infinite;
+  }
+  .radar .ring{
+    position:absolute;inset:16px;border-radius:50%;
+    border:1px solid rgba(56,189,248,.32);
+    background:radial-gradient(circle at 50% 50%,rgba(56,189,248,.14),rgba(56,189,248,0) 68%);
+  }
+  .radar .core{
+    position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;
+    border-radius:50%;background:var(--cyan);
+    box-shadow:0 0 18px 3px rgba(56,189,248,.62);
+    animation:corePulse 1.8s ease-in-out infinite;
+  }
+  @keyframes sweep{to{transform:rotate(360deg)}}
+  @keyframes corePulse{0%,100%{opacity:.65}50%{opacity:1}}
+
+  .checks{list-style:none;display:grid;gap:12px;margin-bottom:22px}
+  .checks li{
+    display:flex;align-items:center;gap:10px;
+    font-size:13.5px;color:var(--muted);
+    transition:color .3s ease;
+  }
+  .checks li .dot{
+    width:7px;height:7px;border-radius:50%;flex:0 0 auto;
+    background:rgba(139,155,180,.4);
+    transition:background .35s,box-shadow .35s;
+  }
+  .checks li .name{flex:1 1 auto}
+  .checks li .state{
+    font-size:11.5px;color:var(--dim);
+    font-variant-numeric:tabular-nums;letter-spacing:.4px;
+  }
+  .checks li.checking .dot{background:var(--cyan);box-shadow:0 0 10px 1px rgba(56,189,248,.6)}
+  .checks li.checking .state{color:var(--cyan)}
+  .checks li.done{color:var(--text)}
+  .checks li.done .dot{background:var(--ok);box-shadow:0 0 10px 1px rgba(52,211,153,.55)}
+  .checks li.done .state{color:var(--ok)}
+
+  .bar{position:relative;height:4px;border-radius:4px;background:rgba(148,163,184,.12);overflow:hidden}
+  .bar i{
+    position:absolute;left:0;top:0;height:100%;width:0%;border-radius:4px;
+    background:linear-gradient(90deg,var(--cyan2),var(--cyan));
+    box-shadow:0 0 12px rgba(56,189,248,.5);
+    transition:width .38s ease;
+  }
+  .pct{
+    margin-top:10px;text-align:right;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums;letter-spacing:.5px;
+  }
+
+  /* ---------- 结果区 ---------- */
+  .result{text-align:center;animation:riseIn .55s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .okmark{
+    width:64px;height:64px;margin:0 auto 18px;border-radius:50%;
+    border:1px solid rgba(52,211,153,.35);background:rgba(52,211,153,.10);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 30px -6px rgba(52,211,153,.45);
+  }
+  .okmark svg{width:28px;height:28px;stroke:var(--ok);stroke-width:2.2;fill:none}
+  h2{font-size:clamp(19px,4.4vw,22px);font-weight:650;letter-spacing:.3px}
+  .lead{margin-top:14px;font-size:14.5px;color:var(--text);line-height:1.7}
+  .tip{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.65}
+
+  .domain{
+    display:block;margin:22px 0 20px;padding:17px 12px;
+    border-radius:14px;
+    border:1px solid rgba(56,189,248,.24);
+    background:linear-gradient(180deg,rgba(56,189,248,.10),rgba(56,189,248,.03));
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+    font-size:clamp(18px,5vw,23px);
+    letter-spacing:.6px;
+    color:#bfefff;
+    word-break:break-all;
+    text-shadow:0 0 22px rgba(56,189,248,.35);
+    -webkit-user-select:all;user-select:all;
+  }
+
+  .go{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    width:100%;padding:15px 20px;
+    border:0;border-radius:13px;cursor:pointer;
+    font-family:inherit;font-size:15px;font-weight:650;letter-spacing:.4px;
+    color:#04121f;
+    background:linear-gradient(135deg,#22d3ee,#38bdf8);
+    box-shadow:0 14px 34px -12px rgba(56,189,248,.7);
+    transition:transform .18s,box-shadow .18s,filter .18s;
+  }
+  .go:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 18px 42px -12px rgba(56,189,248,.85)}
+  .go:active{transform:translateY(0) scale(.99)}
+  .go svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+
+  .foot{margin-top:16px;font-size:12px;color:var(--dim);line-height:1.6}
+  .hidden{display:none}
+
+  @media (prefers-reduced-motion:reduce){
+    .radar .sweep,.radar .core{animation:none}
+    .result{animation:none}
+  }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="head">
+    <h1 id="title">访问环境校验</h1>
+    <p class="sub" id="subtitle">正在确认当前访问请求的合法性，请稍候</p>
+  </div>
+
+  <section id="scan">
+    <div class="radar">
+      <div class="sweep"></div>
+      <div class="ring"></div>
+      <div class="core"></div>
+    </div>
+    <ul class="checks" id="checks">
+      <li><span class="dot"></span><span class="name">客户端环境指纹</span><span class="state">待校验</span></li>
+      <li><span class="dot"></span><span class="name">网络请求来源</span><span class="state">待校验</span></li>
+      <li><span class="dot"></span><span class="name">会话完整性</span><span class="state">待校验</span></li>
+      <li><span class="dot"></span><span class="name">自动化脚本特征</span><span class="state">待校验</span></li>
+      <li><span class="dot"></span><span class="name">访问频率阈值</span><span class="state">待校验</span></li>
+    </ul>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="pct" id="pct">0%</div>
+  </section>
+
+  <section id="result" class="result hidden">
+    <div class="okmark">
+      <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h2>访问入口已更新</h2>
+    <p class="lead">本站服务已完成部署调整</p>
+    <p class="tip">请使用下方新的访问地址</p>
+    <span class="domain" id="domain">bjxw.wang</span>
+    <button class="go" id="go" type="button">
+      立即前往
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </button>
+    <p class="foot">若无法跳转，请手动在浏览器地址栏输入上方地址</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var TARGET = 'https://bjxw.wang';
+  var CHECK_TEXT = ['通过', '正常', '安全'];
+
+  var lis = document.querySelectorAll('#checks li');
+  var fill = document.getElementById('barFill');
+  var pct = document.getElementById('pct');
+  var scan = document.getElementById('scan');
+  var result = document.getElementById('result');
+  var title = document.getElementById('title');
+  var subtitle = document.getElementById('subtitle');
+  var goBtn = document.getElementById('go');
+
+  var idx = 0;
+
+  function nextCheck() {
+    if (idx >= lis.length) { finish(); return; }
+    var li = lis[idx];
+    li.classList.add('checking');
+    li.querySelector('.state').textContent = '校验中';
+
+    var delay = 380 + Math.random() * 220;
+    setTimeout(function () {
+      li.classList.remove('checking');
+      li.classList.add('done');
+      li.querySelector('.state').textContent = CHECK_TEXT[Math.floor(Math.random() * CHECK_TEXT.length)];
+      idx++;
+      var p = Math.round((idx / lis.length) * 100);
+      fill.style.width = p + '%';
+      pct.textContent = p + '%';
+      nextCheck();
+    }, delay);
+  }
+
+  function finish() {
+    fill.style.width = '100%';
+    pct.textContent = '100%';
+    setTimeout(function () {
+      scan.classList.add('hidden');
+      title.textContent = '站点迁移通知';
+      subtitle.textContent = '访问环境校验已通过';
+      result.classList.remove('hidden');
+    }, 540);
+  }
+
+  function go() {
+    try {
+      window.location.href = TARGET;
+    } catch (e) {
+      window.location.assign(TARGET);
+    }
+  }
+
+  goBtn.addEventListener('click', go);
+  setTimeout(nextCheck, 160);
+})();
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
